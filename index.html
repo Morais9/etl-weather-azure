@@ -1,0 +1,657 @@
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  /* NOVA REGRA: Garante que o corpo da página tenha o fundo escuro e ocupe a tela toda */
+  body { background-color: #0d1b2a; min-height: 100vh; }
+  
+  /* ATUALIZADO: Adicionado min-height, flexbox e column direction */
+  .db { background: #0d1b2a; color: #e0eaf5; font-size: 13px; min-height: 100vh; display: flex; flex-direction: column; }
+  
+  .header { background: #0a1628; border-bottom: 1px solid #1e3a5f; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .header-title { display: flex; align-items: center; gap: 10px; }
+  .logo { width: 28px; height: 28px; background: #1a6cf0; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; font-weight: 700; }
+  .tabs { display: flex; gap: 2px; background: #112240; padding: 0 20px; border-bottom: 1px solid #1e3a5f; }
+  .tab { padding: 10px 18px; font-size: 12px; color: #5a8abf; cursor: pointer; border-bottom: 2px solid transparent; transition: color .2s, border-color .2s; user-select: none; }
+  .tab:hover { color: #8ab4d8; }
+  .tab.active { color: #58a6ff; border-bottom-color: #58a6ff; font-weight: 600; }
+  
+  /* ATUALIZADO: Adicionado flex-grow: 1 para empurrar o espaço em branco */
+  .page { display: none; padding: 16px 20px; flex-direction: column; gap: 14px; flex-grow: 1; }
+  .page.active { display: flex; }
+  
+  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .kpi { background: #112240; border: 1px solid #1e3a5f; border-radius: 8px; padding: 12px 14px; position: relative; overflow: hidden; }
+  .kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .kpi.blue::before { background: #1a6cf0; }
+  .kpi.cyan::before { background: #00c4e0; }
+  .kpi.amber::before { background: #f0a500; }
+  .kpi.green::before { background: #22c55e; }
+  .kpi.red::before { background: #f05060; }
+  .kpi-label { font-size: 10px; color: #5a8abf; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+  .kpi-value { font-size: 22px; font-weight: 700; color: #c9ddf5; line-height: 1; }
+  .kpi-sub { font-size: 10px; margin-top: 5px; color: #5a8abf; }
+  .kpi-sub.up { color: #22c55e; }
+  .kpi-sub.down { color: #f05060; }
+  .kpi-icon { position: absolute; right: 12px; top: 12px; font-size: 20px; opacity: .15; }
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .charts-row2 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+  .card { background: #112240; border: 1px solid #1e3a5f; border-radius: 8px; padding: 14px 16px; }
+  .card-title { font-size: 11px; font-weight: 600; color: #8ab4d8; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #1a6cf0; flex-shrink: 0; }
+  .chart-wrap { position: relative; width: 100%; }
+  .bar-chart { display: flex; flex-direction: column; gap: 7px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; }
+  .bar-city { width: 72px; font-size: 10px; color: #8ab4d8; text-align: right; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 16px; background: #0d1b2a; border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; display: flex; align-items: center; padding-left: 6px; font-size: 9px; font-weight: 700; color: rgba(255,255,255,.8); }
+  .legend-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #8ab4d8; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+  .insights { display: flex; flex-direction: column; gap: 8px; }
+  .insight { background: #0d1b2a; border: 1px solid #1e3a5f; border-left: 3px solid; border-radius: 0 6px 6px 0; padding: 8px 12px; }
+  .insight.info { border-left-color: #1a6cf0; }
+  .insight.warn { border-left-color: #f0a500; }
+  .insight.good { border-left-color: #22c55e; }
+  .insight.alert { border-left-color: #f05060; }
+  .insight-title { font-size: 10px; font-weight: 600; color: #c9ddf5; margin-bottom: 2px; }
+  .insight-body { font-size: 10px; color: #5a8abf; line-height: 1.4; }
+  .classification-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .classif-card { background: #0d1b2a; border-radius: 6px; padding: 10px; text-align: center; border: 1px solid #1e3a5f; }
+  .classif-pct { font-size: 20px; font-weight: 700; }
+  .classif-label { font-size: 9px; color: #5a8abf; margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
+  .select-city { background: #0d1b2a; border: 1px solid #1e3a5f; color: #8ab4d8; font-size: 11px; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+  
+  /* ATUALIZADO: margin-top: auto garante que o rodapé vá sempre pro fim da tela se faltar conteúdo */
+  .footer { background: #0a1628; border-top: 1px solid #1e3a5f; padding: 8px 20px; display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
+  
+  .footer-text { font-size: 10px; color: #2a4a6f; }
+  .page-title { font-size: 13px; font-weight: 600; color: #58a6ff; margin-bottom: 4px; }
+  .page-sub { font-size: 10px; color: #3a6a9f; margin-bottom: 2px; }
+</style>
+
+<div class="db">
+  <div class="header">
+    <div class="header-title">
+      <div class="logo">&#9729;</div>
+      <div>
+        <div style="font-size:15px;font-weight:600;color:#c9ddf5;">Dashboard Climático · Capitais Brasileiras</div>
+        <div style="font-size:10px;color:#3a6a9f;margin-top:1px;">Período: 06/05/2026 – 19/05/2026 · 22 cidades · Atualizado: 13/05/2026</div>
+      </div>
+    </div>
+    <select class="select-city" id="cityFilter" onchange="updateDash()">
+      <option value="all">Todas as cidades</option>
+    </select>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('overview',this)">Visão Geral</div>
+    <div class="tab" onclick="switchTab('temperatura',this)">Temperatura</div>
+    <div class="tab" onclick="switchTab('precipitacao',this)">Precipitação</div>
+    <div class="tab" onclick="switchTab('insights',this)">Insights</div>
+  </div>
+
+  <div id="page-overview" class="page active">
+    <div class="kpi-row" id="kpiRow">
+      <div class="kpi blue"><div class="kpi-icon">&#127777;</div><div class="kpi-label">Temp. Média Geral</div><div class="kpi-value" id="kpi1">--</div><div class="kpi-sub" id="kpi1sub">--</div></div>
+      <div class="kpi cyan"><div class="kpi-icon">&#8679;</div><div class="kpi-label">Temp. Máx. Média</div><div class="kpi-value" id="kpi2">--</div><div class="kpi-sub up" id="kpi2sub">--</div></div>
+      <div class="kpi amber"><div class="kpi-icon">&#128167;</div><div class="kpi-label">Precipitação Total</div><div class="kpi-value" id="kpi3">--</div><div class="kpi-sub" id="kpi3sub">--</div></div>
+      <div class="kpi green"><div class="kpi-icon">&#128168;</div><div class="kpi-label">Vento Máx. Médio</div><div class="kpi-value" id="kpi4">--</div><div class="kpi-sub up" id="kpi4sub">--</div></div>
+      <div class="kpi red"><div class="kpi-icon">&#127744;</div><div class="kpi-label">Amplitude Média</div><div class="kpi-value" id="kpi5">--</div><div class="kpi-sub" id="kpi5sub">--</div></div>
+    </div>
+    <div class="charts-row">
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Temperatura média por cidade (°C)</div>
+        <div class="bar-chart" id="tempBarChart"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#f0a500"></span>Precipitação por cidade (mm total)</div>
+        <div class="bar-chart" id="precipBarChart"></div>
+      </div>
+    </div>
+    <div class="charts-row2">
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#00c4e0"></span>Evolução temperatura média · top 5 cidades</div>
+        <div class="legend-row" id="lineChartLegend"></div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="lineChart" role="img" aria-label="Gráfico de linha com evolução da temperatura média das 5 cidades mais quentes">Evolução de temperatura.</canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#22c55e"></span>Classificação dos dias</div>
+        <div class="classification-grid" id="classifGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-temperatura" class="page">
+    <div class="charts-row">
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Temperatura máxima média por cidade</div>
+        <div class="bar-chart" id="maxTempBar"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#00c4e0"></span>Temperatura mínima média por cidade</div>
+        <div class="bar-chart" id="minTempBar"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:#c792ea"></span>Amplitude térmica média por cidade (°C)</div>
+      <div class="bar-chart" id="ampBar"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:#00c4e0"></span>Dispersão: amplitude térmica × temperatura média</div>
+      <div class="chart-wrap" style="height:220px;"><canvas id="bubbleChart" role="img" aria-label="Dispersão amplitude versus temperatura por cidade">Dispersão de amplitude versus temperatura.</canvas></div>
+    </div>
+  </div>
+
+  <div id="page-precipitacao" class="page">
+    <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);">
+      <div class="kpi blue"><div class="kpi-label">Total acumulado</div><div class="kpi-value" id="pKpi1">--</div><div class="kpi-sub" id="pKpi1s">--</div></div>
+      <div class="kpi amber"><div class="kpi-label">Dias chuvosos</div><div class="kpi-value" id="pKpi2">--</div><div class="kpi-sub" id="pKpi2s">--</div></div>
+      <div class="kpi cyan"><div class="kpi-label">Média diária</div><div class="kpi-value" id="pKpi3">--</div><div class="kpi-sub" id="pKpi3s">--</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:#f0a500"></span>Precipitação acumulada por cidade (mm)</div>
+      <div class="bar-chart" id="precipFullBar"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:#1a6cf0"></span>Evolução da precipitação diária · top 5 cidades mais chuvosas</div>
+      <div class="legend-row" id="precipLineLegend"></div>
+      <div class="chart-wrap" style="height:220px;"><canvas id="precipLineChart" role="img" aria-label="Evolução diária de precipitação por cidade">Evolução de precipitação.</canvas></div>
+    </div>
+  </div>
+
+  <div id="page-insights" class="page">
+    <div class="charts-row2">
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#f05060"></span>Insights automáticos</div>
+        <div class="insights" id="insightsBox"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#22c55e"></span>Classificação dos dias</div>
+        <div class="classification-grid" id="classifGrid2"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:#c792ea"></span>Vento máximo médio por cidade (km/h)</div>
+      <div class="bar-chart" id="ventoBar"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-text">Fonte: Sistema de Monitoramento Climático · Extração: 13/05/2026 · 379 registros</div>
+    <div class="footer-text" style="color:#1a6cf0;">Dashboard Climático v2.0</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const raw = `Aracaju,26.2,28.5,24,3.8,18.9,4.5,Agradavel
+Aracaju,26.3,28.5,24.1,4.6,19,4.4,Agradavel
+Aracaju,26,28.5,23.5,7.4,15.4,5,Agradavel
+Aracaju,25.3,27,23.6,18.2,20,3.4,Chuvoso
+Aracaju,26.6,28.4,24.8,0.5,17,3.6,Agradavel
+Aracaju,25.5,28,23,0.6,11.7,5,Agradavel
+Aracaju,26.6,28.8,24.3,4.2,17.4,4.5,Agradavel
+Aracaju,26,27.8,24.1,5.1,14.7,3.7,Agradavel
+Aracaju,25.8,27.9,23.8,3,16.7,4.1,Agradavel
+Aracaju,26.8,28.7,24.8,0,13.8,3.9,Agradavel
+Aracaju,25.7,28.4,23,2.4,14.9,5.4,Agradavel
+Aracaju,26,27.8,24.1,3.6,17.3,3.7,Agradavel
+Aracaju,26.6,28.3,24.9,1.7,14.3,3.4,Agradavel
+Aracaju,25.7,27.6,23.8,2.3,10.8,3.8,Agradavel
+Belém,26,28.8,23.3,13.6,7.9,5.5,Chuvoso
+Belém,25.8,28,23.5,6.6,9.4,4.5,Agradavel
+Belém,26.2,29,23.5,11.7,10.4,5.5,Chuvoso
+Belém,27,31.2,22.8,11.2,13.7,8.4,Chuvoso
+Belém,27.3,31.1,23.5,6.5,12.6,7.6,Quente
+Belém,27.5,31.5,23.5,12.3,11.8,8,Chuvoso
+Belém,28,31.4,24.5,22.7,11.2,6.9,Chuvoso
+Belém,25.5,27.1,23.8,31.3,10.7,3.3,Chuvoso
+Belém,26.2,28.9,23.4,19.7,7.3,5.5,Chuvoso
+Belém,27.2,30.8,23.5,13,10.5,7.3,Chuvoso
+Belém,26.8,30.6,23.1,5.5,12.1,7.5,Quente
+Belém,26.8,30.4,23.1,6,7.2,7.3,Quente
+Belém,26.7,30,23.4,3.3,11.2,6.6,Quente
+Belém,26.2,28.5,23.8,4.5,9.7,4.7,Agradavel
+Belo Horizonte,21.5,27.1,15.9,0,11.4,11.2,Agradavel
+Belo Horizonte,21.4,25.9,17,0.8,14.8,8.9,Agradavel
+Belo Horizonte,21.9,26.8,17,0,11,9.8,Agradavel
+Belo Horizonte,22,27.5,16.6,0,10.6,10.9,Agradavel
+Belo Horizonte,22.8,28.4,17.1,0,7.7,11.3,Agradavel
+Belo Horizonte,22.4,26,18.9,1.6,12.1,7.1,Agradavel
+Belo Horizonte,20.6,24.1,17,3.7,10.2,7.1,Agradavel
+Belo Horizonte,21,25,16.9,9.8,10.3,8.1,Agradavel
+Belo Horizonte,21,24.4,17.5,0.8,6.5,6.9,Agradavel
+Belo Horizonte,21.2,25.2,17.3,0,8.5,7.9,Agradavel
+Belo Horizonte,21.8,25.9,17.7,0.4,8.8,8.2,Agradavel
+Belo Horizonte,22,26.1,18,0,11.9,8.1,Agradavel
+Belo Horizonte,22.2,26.6,17.9,0,8.7,8.7,Agradavel
+Belo Horizonte,23.3,27.5,19.1,0.6,12.6,8.4,Agradavel
+Boa Vista,27.3,30.8,23.8,2,12.4,7,Quente
+Boa Vista,28.1,32.2,24,3.3,16.2,8.2,Quente
+Boa Vista,27.8,31.6,24.1,0.2,19.5,7.5,Quente
+Boa Vista,27.8,31,24.5,0.2,17.7,6.5,Quente
+Boa Vista,27.8,31.4,24.3,9.4,14.9,7.1,Quente
+Boa Vista,26.8,30,23.7,46,19,6.3,Chuvoso
+Boa Vista,25.3,27,23.6,64.4,6.2,3.4,Chuvoso
+Boa Vista,25.2,27,23.3,31.9,8.3,3.7,Chuvoso
+Boa Vista,26.6,29.9,23.2,9.1,14.8,6.7,Agradavel
+Boa Vista,26.3,29.4,23.2,22.2,12,6.2,Chuvoso
+Boa Vista,26.6,29.7,23.5,8.7,15.1,6.2,Agradavel
+Boa Vista,26.9,30.4,23.4,3.6,12.1,7,Quente
+Boa Vista,26.6,29.3,23.9,7.6,16.1,5.4,Agradavel
+Boa Vista,25.5,27.5,23.5,10.7,12.7,4,Chuvoso
+Brasília,20.8,25.4,16.3,0,23.8,9.1,Agradavel
+Brasília,22,27.5,16.6,0,17.8,10.9,Agradavel
+Brasília,22,26.5,17.5,0.2,10.4,9,Agradavel
+Brasília,22.7,28,17.4,0,10.4,10.6,Agradavel
+Brasília,22.8,28.6,17.1,0,15.2,11.5,Agradavel
+Brasília,21,26.5,15.6,0,13.8,10.9,Agradavel
+Brasília,21.2,26.6,15.9,0.2,12.3,10.7,Agradavel
+Brasília,21.8,25.9,17.8,0.2,8.9,8.1,Agradavel
+Brasília,22.8,27.5,18.1,0,10.7,9.4,Agradavel
+Brasília,23,28.1,18,0,11.5,10.1,Agradavel
+Brasília,23.7,29,18.4,0,10.7,10.6,Agradavel
+Brasília,24,29.2,18.8,0,11.8,10.4,Agradavel
+Brasília,24.5,29.8,19.1,0,10,10.7,Agradavel
+Brasília,24.6,30.2,19.1,0,5.3,11.1,Quente
+Campo Grande,26.6,31.2,21.9,0,16.8,9.3,Quente
+Campo Grande,25.3,29.2,21.4,0,25.1,7.8,Agradavel
+Campo Grande,26.2,30.3,21.4,0,18.3,8.9,Quente
+Campo Grande,26.5,31,21.7,0,16.6,9.3,Quente
+Campo Grande,28.1,33,22.5,0,10.4,10.5,Quente
+Campo Grande,25.6,28.2,22.4,1.5,10.5,5.8,Agradavel
+Campo Grande,25,29.1,21.6,0,13.5,7.5,Agradavel
+Campo Grande,25.7,30.2,21.6,0,15.1,8.6,Agradavel
+Campo Grande,27.3,32.4,22.8,0,14.7,9.6,Quente
+Campo Grande,28,33.4,22.1,0,16.7,11.3,Quente
+Campo Grande,28.1,33.3,22.7,0,12.5,10.6,Quente
+Campo Grande,28,33.1,23.2,0,15.1,9.9,Quente
+Campo Grande,28.4,33.7,23.5,0,13.1,10.2,Quente
+Campo Grande,29.4,34.7,24.1,0,15.1,10.6,Quente
+Cuiabá,27.6,33.7,22.5,0,16.4,11.2,Quente
+Cuiabá,28.6,34.7,23.3,0,13.8,11.4,Quente
+Cuiabá,28.1,34.4,23.3,0,13,11.1,Quente
+Cuiabá,28.5,34.9,22.7,0,10.7,12.2,Quente
+Cuiabá,30.3,37,24.1,0,14,12.9,Quente
+Cuiabá,27.5,33.1,22.5,1.5,11.4,10.6,Quente
+Cuiabá,27.9,34.2,22.5,0,12.4,11.7,Quente
+Cuiabá,28.5,34.8,22.5,0,9.9,12.3,Quente
+Cuiabá,29.4,35.6,23.7,0,11.7,11.9,Quente
+Cuiabá,30.5,37,24.5,0,12.4,12.5,Quente
+Cuiabá,30.1,36.4,24.2,0,14.9,12.2,Quente
+Cuiabá,30.2,36.5,24.1,0,15.8,12.4,Quente
+Cuiabá,30.9,37.6,24.5,0,12.6,13.1,Quente
+Cuiabá,30.8,37.1,24.9,0,17.6,12.2,Quente
+Curitiba,14.8,21,8.6,0,14.3,12.4,Agradavel
+Curitiba,16.7,22.9,10.8,0,22.4,12.1,Agradavel
+Curitiba,17.3,23.5,10.9,0,12.2,12.6,Agradavel
+Curitiba,17.8,24.4,11.3,0,9.4,13.1,Agradavel
+Curitiba,19.5,26.7,12.5,0,9.2,14.2,Agradavel
+Curitiba,16.3,21.8,11.1,1.7,10,10.7,Agradavel
+Curitiba,14.2,20.4,8.9,0,8.2,11.5,Agradavel
+Curitiba,15.4,22.1,9.4,0,9.1,12.7,Agradavel
+Curitiba,17.8,24.2,11.5,0,7.9,12.7,Agradavel
+Curitiba,14.6,20.9,8.4,12.6,12.6,12.5,Frio
+Curitiba,16.5,22.6,10.5,1.9,7.8,12.1,Agradavel
+Curitiba,16.6,22.8,10.5,5.6,7.4,12.3,Agradavel
+Curitiba,16.4,22.4,10.5,3.4,16.2,11.9,Agradavel
+Curitiba,14.8,21.1,8.6,4.3,9.8,12.5,Agradavel
+Florianópolis,18.1,22.5,14.9,0.3,23.8,7.6,Agradavel
+Florianópolis,19.6,24.6,14.6,0,30.1,10,Agradavel
+Florianópolis,20.1,25.8,14.6,0,16.7,11.2,Agradavel
+Florianópolis,19.9,25.5,14.3,0,16.9,11.2,Agradavel
+Florianópolis,22,28,16.4,0,15.1,11.6,Agradavel
+Florianópolis,19.5,24.1,15,7.6,15.9,9.1,Agradavel
+Florianópolis,17.5,22.5,13.1,0,13.3,9.4,Agradavel
+Florianópolis,18.7,23.8,14.3,0,11.2,9.5,Agradavel
+Florianópolis,19.7,25.4,14.3,0,7.4,11.1,Agradavel
+Florianópolis,16.3,21.7,10.9,21.8,10,10.8,Frio
+Florianópolis,17.7,23.4,12.4,1,9.1,11,Agradavel
+Florianópolis,18.7,24.3,13.6,9.8,7.1,10.7,Agradavel
+Florianópolis,19.8,24.4,15.8,3.3,12.3,8.6,Agradavel
+Florianópolis,17.2,22.3,12.2,6.6,10.3,10.1,Agradavel
+Fortaleza,27.6,31.3,24.8,4.6,18.4,6.5,Quente
+Fortaleza,27.4,31.2,24.5,6.4,16.7,6.7,Quente
+Fortaleza,27.4,31.2,24.5,5.7,20.2,6.7,Quente
+Fortaleza,26.8,30.4,24.2,11.2,17.6,6.2,Chuvoso
+Fortaleza,27.6,31,24.2,0,14.6,6.8,Quente
+Fortaleza,26.5,29.6,24.1,11.6,15.3,5.5,Chuvoso
+Fortaleza,27.4,31,24.6,5.3,18.3,6.4,Quente
+Fortaleza,26.7,30.5,24.2,7.8,16.5,6.3,Quente
+Fortaleza,27.7,31.5,24.4,2.1,18.9,7.1,Quente
+Fortaleza,27.5,31.2,24.7,1.1,15.3,6.5,Quente
+Fortaleza,27.8,31.6,24.6,0.5,14.5,7,Quente
+Fortaleza,27.4,31.3,24.4,7.1,18.5,6.9,Quente
+Fortaleza,27.2,31.1,24.3,8.2,17.4,6.8,Quente
+Fortaleza,27.8,31.4,25,2.5,17.4,6.4,Quente
+Goiânia,25.9,32.1,20.4,0,11,11.7,Quente
+Goiânia,26.5,32.5,20.5,0,14.8,12,Quente
+Goiânia,26.8,33.2,21,0,15,12.2,Quente
+Goiânia,26.9,33.4,20.8,0,12.4,12.6,Quente
+Goiânia,28.4,35,22,0,13.3,13,Quente
+Goiânia,25.7,31,21.1,0,11.5,9.9,Agradavel
+Goiânia,26.2,32.1,21.1,0,9.8,11,Quente
+Goiânia,26.1,31.8,20.7,0,11.6,11.1,Quente
+Goiânia,27.8,34,21.7,0,14,12.3,Quente
+Goiânia,28.4,34.9,22.1,0,15.7,12.8,Quente
+Goiânia,28.4,34.9,21.9,0,12.8,13,Quente
+Goiânia,28.5,35.1,22.2,0,12.8,12.9,Quente
+Goiânia,28.9,35.7,22.6,0,14.4,13.1,Quente
+Goiânia,29.3,36.1,23.3,0,16.6,12.8,Quente
+João Pessoa,26.8,30.1,24.2,1.4,21.5,5.9,Quente
+João Pessoa,26.8,30.5,24.4,0,18.8,6.1,Quente
+João Pessoa,27.1,30.5,24.2,0,21.1,6.3,Quente
+João Pessoa,26.4,29.9,23.5,7.9,21.5,6.4,Agradavel
+João Pessoa,27.1,30.6,24.4,0,18.1,6.2,Quente
+João Pessoa,26.4,29.9,23.6,9,19.8,6.3,Agradavel
+João Pessoa,26.9,30.4,24.2,3.8,20.2,6.2,Quente
+João Pessoa,26.5,30.1,23.8,7.2,22.1,6.3,Agradavel
+João Pessoa,27.2,30.7,24.3,0.5,21.5,6.4,Quente
+João Pessoa,27.4,31.1,24.5,0,18.7,6.6,Quente
+João Pessoa,27.2,30.9,24.2,2.5,21.5,6.7,Quente
+João Pessoa,26.9,30.5,24.1,4.8,20.1,6.4,Quente
+João Pessoa,26.7,30.2,23.9,5.1,18.3,6.3,Agradavel
+João Pessoa,27.2,30.8,24.4,1.7,19.5,6.4,Quente
+Macapá,26.9,31,23.3,15.2,12.6,7.7,Chuvoso
+Macapá,26.8,30.8,23.3,18.3,11.3,7.5,Chuvoso
+Macapá,26.8,30.4,23.4,20.7,10.8,7,Chuvoso
+Macapá,26.3,29.8,23.3,16.1,12.4,6.5,Chuvoso
+Macapá,27,31.5,23.3,7.2,11.4,8.2,Chuvoso
+Macapá,27.1,31.6,23.1,11.1,14.3,8.5,Chuvoso
+Macapá,26.6,31.2,23.1,22.5,11.6,8.1,Chuvoso
+Macapá,26.2,30.8,22.7,28.2,11.4,8.1,Chuvoso
+Macapá,26.8,31.1,23.2,11.2,14.4,7.9,Chuvoso
+Macapá,27.5,31.9,23.4,5.6,12.5,8.5,Chuvoso
+Macapá,27.5,32,23.5,8,13.3,8.5,Chuvoso
+Macapá,27.3,31.9,23.2,10.4,9.6,8.7,Chuvoso
+Macapá,27.4,31.7,23.2,7.6,12.2,8.5,Chuvoso
+Macapá,27.3,31.7,23.1,10.7,11.3,8.6,Chuvoso
+Maceió,26.3,29.7,23.4,3,16.4,6.3,Agradavel
+Maceió,26.2,29.3,23.5,4.3,13.4,5.8,Agradavel
+Maceió,26.2,29.7,23.6,5.7,14.1,6.1,Agradavel
+Maceió,25.8,29.4,23.2,11.3,19,6.2,Chuvoso
+Maceió,26.5,29.8,23.6,1.7,17.9,6.2,Agradavel
+Maceió,25.9,29.3,23.4,9.5,16.6,5.9,Agradavel
+Maceió,26.1,29.5,23.5,3.4,12.6,6,Agradavel
+Maceió,26.2,30,23.7,5.7,10.3,6.3,Agradavel
+Maceió,26.4,30.2,23.8,3.5,11.3,6.4,Agradavel
+Maceió,26.7,30.3,24.1,0,10.2,6.2,Agradavel
+Maceió,26.5,30,23.7,2.3,13.6,6.3,Agradavel
+Maceió,26.3,29.7,23.5,5.2,15.8,6.2,Agradavel
+Maceió,26.2,29.5,23.4,6.1,14.7,6.1,Agradavel
+Maceió,26.8,30.4,24.2,1.8,13.1,6.2,Agradavel
+Manaus,27.8,33.2,23.5,8.6,10.8,9.7,Quente
+Manaus,27.3,32.4,23.1,11.5,12.3,9.3,Chuvoso
+Manaus,27.2,32.8,22.9,10.4,9.4,9.9,Chuvoso
+Manaus,27.2,33.2,22.7,7.6,11.1,10.5,Quente
+Manaus,27.6,33.3,23.1,6.3,10.5,10.2,Quente
+Manaus,27.1,32.1,22.9,12.3,10,9.2,Chuvoso
+Manaus,27.2,32.7,23,10.6,9.5,9.7,Chuvoso
+Manaus,27.1,33,22.6,12.7,9.6,10.4,Chuvoso
+Manaus,27.7,33.4,23.4,6.3,10.4,10,Quente
+Manaus,28.4,34.1,24.3,2.8,14.7,9.8,Quente
+Manaus,28,33.8,23.4,5.1,15.5,10.4,Quente
+Manaus,28.1,33.8,23.5,4.7,12.6,10.3,Quente
+Manaus,28.2,33.9,23.5,4.3,12.8,10.4,Quente
+Manaus,27.6,33.4,22.9,7.2,10.2,10.5,Quente
+Natal,27.7,30.5,25.4,2,26.4,5.1,Quente
+Natal,27.5,30.4,25.3,0,23.3,5.1,Quente
+Natal,28,31.1,25.3,0,19.3,5.8,Quente
+Natal,27,30.1,24.9,8.2,23.9,5.2,Quente
+Natal,28,31.4,25.3,0,22.6,6.1,Quente
+Natal,27.1,30.1,25.1,8.8,23.3,5,Agradavel
+Natal,27.7,30.7,25.3,3.4,21.1,5.4,Quente
+Natal,27.4,30.8,24.9,7.9,24.8,5.9,Quente
+Natal,28.2,31.4,25.6,1.1,25.6,5.8,Quente
+Natal,28.3,31.6,25.6,0.3,22.1,6,Quente
+Natal,28.2,31.7,25.4,0,21.9,6.3,Quente
+Natal,27.8,31.2,25.1,4.3,21.2,6.1,Quente
+Natal,27.5,31,25,6.4,22.2,6,Quente
+Natal,28.1,31.8,25.3,1.3,23.2,6.5,Quente
+Porto Alegre,14.2,20.2,8.9,0,9.1,11.3,Agradavel
+Porto Alegre,17.1,24.6,9.7,0,10.3,14.9,Agradavel
+Porto Alegre,18.4,26.1,11.1,0,10,15,Agradavel
+Porto Alegre,18.4,26,10.9,0,8.6,15.1,Agradavel
+Porto Alegre,20.1,28.5,12.1,0,9.3,16.4,Agradavel
+Porto Alegre,16.3,22.8,10.8,1.1,8.1,12,Agradavel
+Porto Alegre,14.4,21.2,8.6,0,7.7,12.6,Agradavel
+Porto Alegre,15.4,22.8,9,0,8.8,13.8,Agradavel
+Porto Alegre,17.5,25.1,10,0,7.1,15.1,Agradavel
+Porto Alegre,13.7,21.2,7.1,22.4,10.3,14.1,Frio
+Porto Alegre,15.1,22.2,8.3,1,9.4,13.9,Agradavel
+Porto Alegre,15.5,22.8,8.9,9.5,10.7,13.9,Agradavel
+Porto Alegre,16.3,24.4,8.9,4.4,10.7,15.5,Agradavel
+Porto Alegre,14.2,21.5,7.2,9.1,11.5,14.3,Agradavel
+Recife,26.3,29.1,24,5.6,13.3,5.1,Agradavel
+Recife,26.3,29.3,24.2,7.1,13,5.1,Agradavel
+Recife,26.3,29.8,24.1,7.2,14.3,5.7,Agradavel
+Recife,25.9,29.4,23.5,14.4,18.3,5.9,Chuvoso
+Recife,26.4,29.7,24.1,2.7,14.6,5.6,Agradavel
+Recife,25.7,28.9,23.2,12.7,15.6,5.7,Agradavel
+Recife,25.8,29.1,23.2,9,12.8,5.9,Agradavel
+Recife,26,29.4,23.6,10.1,12.3,5.8,Agradavel
+Recife,26.6,30,23.9,4,13.4,6.1,Agradavel
+Recife,26.7,30.3,24,1.2,12.4,6.3,Agradavel
+Recife,26.6,30.1,23.8,2.5,12.7,6.3,Agradavel
+Recife,26.4,29.9,23.5,7.9,14.4,6.4,Agradavel
+Recife,26.3,29.6,23.4,8.4,13.8,6.2,Agradavel
+Recife,26.9,30.4,24.3,2.3,12.8,6.1,Agradavel
+Rio de Janeiro,22.9,27,19.5,0,14.8,7.5,Agradavel
+Rio de Janeiro,23.6,27.2,20.4,0,12.5,6.8,Agradavel
+Rio de Janeiro,24.2,28.5,20.4,0,11.2,8.1,Agradavel
+Rio de Janeiro,24.3,29.4,19.8,0,9,9.6,Agradavel
+Rio de Janeiro,24.1,29.2,20.1,0,11.3,9.1,Agradavel
+Rio de Janeiro,23.5,27.8,20,3,13.9,7.8,Agradavel
+Rio de Janeiro,22.8,27.1,19.6,0,12.3,7.5,Agradavel
+Rio de Janeiro,23.4,27.4,19.6,0,9.8,7.8,Agradavel
+Rio de Janeiro,24.3,29.1,20.3,0,8.7,8.8,Agradavel
+Rio de Janeiro,24.3,28.7,20.3,2.3,10.8,8.4,Agradavel
+Rio de Janeiro,24.2,28.6,20,0,11,8.6,Agradavel
+Rio de Janeiro,25,30.6,20.5,0,12.7,10.1,Agradavel
+Rio de Janeiro,23.5,26.1,20.9,0,16.4,5.2,Agradavel
+Rio de Janeiro,27,32.3,21.8,0,9.9,10.5,Quente
+Rio de Janeiro,22.6,24.3,20.9,13.2,23.3,3.4,Chuvoso
+Salvador,26.1,28.5,23.7,7.1,25.4,4.8,Agradavel
+Salvador,25.5,28.3,22.6,4.4,19.4,5.7,Agradavel
+Salvador,26.1,27.8,24.4,1.2,15.5,3.4,Agradavel
+Salvador,25.4,27.5,23.4,3.2,22.2,4.1,Agradavel
+Salvador,26.8,28.8,24.9,0.1,18.1,3.9,Agradavel
+Salvador,25.8,27,24.5,5.6,16,2.5,Agradavel
+Salvador,25.6,27.7,23.6,4.6,18.7,4.1,Agradavel
+Salvador,26.6,28.3,25,0.6,16.3,3.3,Agradavel
+Salvador,26,27.6,24.3,1.7,15.7,3.3,Agradavel
+Salvador,26.3,27.9,24.7,1.2,15.3,3.2,Agradavel
+Salvador,26.2,27.4,24.9,4.3,17.4,2.5,Agradavel
+Salvador,25.7,27.1,24.3,2.1,14.3,2.8,Agradavel
+Salvador,25.6,27.4,23.8,3.3,13.1,3.6,Agradavel
+Salvador,25,27,23.1,1,10.8,3.9,Agradavel
+São Luís,26.9,30.2,23.6,12.3,12.7,6.6,Chuvoso
+São Luís,26.6,30.2,23.1,3.8,10.7,7.1,Quente
+São Luís,26.8,29,24.7,9.9,11.6,4.3,Agradavel
+São Luís,26.6,29.6,23.5,9.5,15,6.1,Agradavel
+São Luís,27,29.8,24.3,11.5,12.2,5.5,Chuvoso
+São Luís,26.8,30.3,23.4,6.7,11.6,6.9,Quente
+São Luís,27.8,31,24.5,12.3,12.4,6.5,Chuvoso
+São Luís,26,28.4,23.6,28.3,15.7,4.8,Chuvoso
+São Luís,26.4,29.6,23.2,13.3,7.5,6.4,Chuvoso
+São Luís,26.4,30.1,22.7,6.5,10.7,7.4,Quente
+São Luís,26.7,29.6,23.8,7.2,12.7,5.8,Agradavel
+São Luís,26,28.7,23.4,9.8,12.7,5.3,Agradavel
+São Luís,26.4,29.2,23.7,4.6,12.7,5.5,Agradavel
+São Luís,26.4,30.7,22.2,3.3,9.5,8.5,Quente
+São Paulo,23.1,28.7,17.5,0,10.4,11.2,Agradavel
+São Paulo,23.4,28.8,18,0,16.5,10.8,Agradavel
+São Paulo,24.5,28.1,20.8,0.1,22.3,7.3,Agradavel
+São Paulo,23.9,28.1,19.7,0,18.9,8.4,Agradavel
+São Paulo,15.9,18.9,12.9,12.6,10.8,6,Chuvoso
+São Paulo,13.5,18.1,8.9,0,9.1,9.2,Agradavel
+São Paulo,14,19.7,8.4,0,9,11.3,Agradavel
+São Paulo,16.4,24,8.8,0,8,15.2,Agradavel
+São Paulo,18.3,24.5,12.1,0,7.6,12.4,Agradavel
+São Paulo,16.3,17.8,14.8,9.6,4,3,Frio
+São Paulo,18.6,23,14.1,0.9,7.3,8.9,Agradavel
+São Paulo,19.8,23.1,16.4,7.9,7.8,6.7,Agradavel
+São Paulo,20.4,23,17.8,8.1,17.8,5.2,Agradavel
+São Paulo,15.8,17.9,13.8,15.7,10.4,4.1,Chuvoso
+Teresina,28.3,33,23.6,0.1,13.5,9.4,Quente
+Teresina,28.8,34.2,23.5,0,9.9,10.7,Quente
+Teresina,28.5,33.7,23.3,10.1,10,10.4,Chuvoso
+Teresina,27.8,32.2,23.5,7.3,15.3,8.7,Quente
+Teresina,26.8,30.5,23.2,15.3,12.5,7.3,Chuvoso
+Teresina,27.6,31.4,23.9,9.2,11.7,7.5,Quente
+Teresina,27.6,31.9,23.4,5.4,11.4,8.5,Quente
+Teresina,26.2,29.5,23,11,13,6.5,Chuvoso
+Teresina,27.4,31.4,23.5,3.2,17.1,7.9,Quente
+Teresina,26.9,30.8,23,1.9,8.9,7.8,Quente
+Teresina,26.2,29.2,23.1,14.2,13.4,6.1,Chuvoso
+Teresina,26.8,30.7,22.8,2.1,9.5,7.9,Quente
+Teresina,26.2,29.2,23.2,1.5,11.4,6,Agradavel
+Teresina,27,31.9,22,0,8.2,9.9,Quente
+Vitória,24.3,26.4,22.2,1.7,16.3,4.2,Agradavel
+Vitória,24.4,27.6,21.2,2.4,12.5,6.4,Agradavel
+Vitória,24.4,28,20.8,1.6,16.6,7.2,Agradavel
+Vitória,25.6,28.7,22.5,0.8,20.9,6.2,Agradavel
+Vitória,25.9,31,20.8,0,18.5,10.2,Quente
+Vitória,24,26.9,21.1,0,24.7,5.8,Agradavel
+Vitória,22.3,24.5,20.1,0,21.2,4.4,Agradavel
+Vitória,23.4,27.5,19.2,0,15.3,8.3,Agradavel
+Vitória,24.8,28.5,21,2,16,7.5,Agradavel
+Vitória,24.7,27.8,21.6,5.4,15.6,6.2,Agradavel
+Vitória,25.1,28.2,22,3.9,13.4,6.2,Agradavel
+Vitória,25,27.4,22.5,1.4,11.3,4.9,Agradavel
+Vitória,25.2,29,21.4,0,17.9,7.6,Agradavel
+Vitória,26.6,30.8,22.5,1.2,20,8.3,Quente`;
+
+const rows = raw.trim().split('\n').map(l => {
+  const p = l.split(',');
+  return { city: p[0], media: +p[1], max: +p[2], min: +p[3], precip: +p[4], vento: +p[5], amp: +p[6], classif: p[7] };
+});
+
+const cities = [...new Set(rows.map(r => r.city))].sort();
+const sel = document.getElementById('cityFilter');
+cities.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+
+const colors = ['#1a6cf0','#00c4e0','#22c55e','#f0a500','#c792ea','#f05060','#ff8c42','#58d9b2','#e96cba','#a78bfa','#34d399','#fbbf24'];
+const classifColors = { 'Agradavel': '#22c55e', 'Quente': '#f0a500', 'Chuvoso': '#1a6cf0', 'Frio': '#00c4e0' };
+
+function groupBy(arr, key) { return arr.reduce((a,r) => { (a[r[key]]=a[r[key]]||[]).push(r); return a; }, {}); }
+function avg(arr) { return arr.reduce((s,v) => s+v, 0) / arr.length; }
+
+let charts = {};
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-' + name).classList.add('active');
+  updateDash();
+}
+
+function makeBarChart(containerId, dataArr, maxVal, colorFn) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = dataArr.map(d => {
+    const pct = (d.val / maxVal * 100).toFixed(1);
+    const col = colorFn(d.val);
+    const lbl = d.city.length > 9 ? d.city.slice(0,9)+'.' : d.city;
+    return `<div class="bar-row"><div class="bar-city">${lbl}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${col};">${d.val.toFixed(1)}</div></div></div>`;
+  }).join('');
+}
+
+function updateDash() {
+  const fv = document.getElementById('cityFilter').value;
+  const data = fv === 'all' ? rows : rows.filter(r => r.city === fv);
+  const byCity = groupBy(data, 'city');
+  const cityList = Object.keys(byCity).sort();
+
+  const allMedias = data.map(r => r.media);
+  const allMaxs = data.map(r => r.max);
+  const allMins = data.map(r => r.min);
+  const allPrecips = data.map(r => r.precip);
+  const allVentos = data.map(r => r.vento);
+  const allAmps = data.map(r => r.amp);
+
+  document.getElementById('kpi1').textContent = avg(allMedias).toFixed(1) + '°C';
+  document.getElementById('kpi1sub').textContent = cityList.length + ' cidade(s)';
+  document.getElementById('kpi2').textContent = avg(allMaxs).toFixed(1) + '°C';
+  document.getElementById('kpi2sub').textContent = '▲ Pico: ' + Math.max(...data.map(r => r.max)).toFixed(1) + '°C';
+  document.getElementById('kpi3').textContent = data.reduce((s,r) => s+r.precip,0).toFixed(0) + 'mm';
+  document.getElementById('kpi3sub').textContent = 'Dias chuvosos: ' + data.filter(r => r.classif==='Chuvoso').length;
+  document.getElementById('kpi4').textContent = avg(allVentos).toFixed(1) + 'km/h';
+  document.getElementById('kpi4sub').textContent = '▲ Máx: ' + Math.max(...allVentos).toFixed(1) + 'km/h';
+  document.getElementById('kpi5').textContent = avg(allAmps).toFixed(1) + '°C';
+  document.getElementById('kpi5sub').textContent = 'Máx: ' + Math.max(...allAmps).toFixed(1) + '°C';
+
+  const cityAvgTemp = cityList.map(c => ({ city: c, val: avg(byCity[c].map(r => r.media)) })).sort((a,b) => b.val-a.val);
+  const cityPrecip = cityList.map(c => ({ city: c, val: byCity[c].reduce((s,r) => s+r.precip,0) })).sort((a,b) => b.val-a.val);
+
+  makeBarChart('tempBarChart', cityAvgTemp, cityAvgTemp[0]?.val||1, v => v>28?'#f05060':v>25?'#f0a500':'#1a6cf0');
+  makeBarChart('precipBarChart', cityPrecip, cityPrecip[0]?.val||1, v => v>200?'#1a6cf0':v>80?'#00c4e0':'#22c55e');
+
+  const top5 = cityAvgTemp.slice(0,5).map(d => d.city);
+  const allDates = ['06/05','07/05','08/05','09/05','10/05','11/05','12/05','13/05','14/05','15/05','16/05','17/05','18/05','19/05'];
+  document.getElementById('lineChartLegend').innerHTML = top5.map((c,i) => `<span class="legend-item"><span class="legend-dot" style="background:${colors[i]};${i>2?'outline:1px dashed '+colors[i]+';background:transparent;':''}"></span>${c}</span>`).join('');
+  destroyChart('lineChart');
+  charts['lineChart'] = new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: { labels: allDates, datasets: top5.map((c,i) => ({ label:c, data:(byCity[c]||[]).map(r=>r.media), borderColor:colors[i], backgroundColor:'transparent', borderWidth:2, pointRadius:2, tension:0.4, borderDash:i>2?[4,3]:[] })) },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#3a6a9f',font:{size:9}},grid:{color:'#1e3a5f'}}, y:{ticks:{color:'#3a6a9f',font:{size:9},callback:v=>v+'°'},grid:{color:'#1e3a5f'}} } }
+  });
+
+  const classifCounts = groupBy(data, 'classif');
+  const total = data.length;
+  const classifHtml = ['Agradavel','Quente','Chuvoso','Frio'].map(cl => {
+    const n=(classifCounts[cl]||[]).length, pct=total?(n/total*100).toFixed(0):0;
+    const labels={Agradavel:'Agradável',Quente:'Quente',Chuvoso:'Chuvoso',Frio:'Frio'};
+    return `<div class="classif-card"><div class="classif-pct" style="color:${classifColors[cl]}">${pct}%</div><div class="classif-label">${labels[cl]}</div><div style="font-size:10px;color:#5a8abf;margin-top:2px;">${n} dias</div></div>`;
+  }).join('');
+  ['classifGrid','classifGrid2'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=classifHtml; });
+
+  const cityMaxTemp = cityList.map(c => ({ city:c, val:avg(byCity[c].map(r=>r.max)) })).sort((a,b)=>b.val-a.val);
+  const cityMinTemp = cityList.map(c => ({ city:c, val:avg(byCity[c].map(r=>r.min)) })).sort((a,b)=>b.val-a.val);
+  const cityAmp = cityList.map(c => ({ city:c, val:avg(byCity[c].map(r=>r.amp)) })).sort((a,b)=>b.val-a.val);
+  const cityVento = cityList.map(c => ({ city:c, val:avg(byCity[c].map(r=>r.vento)) })).sort((a,b)=>b.val-a.val);
+
+  makeBarChart('maxTempBar', cityMaxTemp, cityMaxTemp[0]?.val||1, v => v>33?'#f05060':v>29?'#f0a500':'#1a6cf0');
+  makeBarChart('minTempBar', cityMinTemp, cityMinTemp[0]?.val||1, v => v>22?'#00c4e0':v>15?'#1a6cf0':'#c792ea');
+  makeBarChart('ampBar', cityAmp, cityAmp[0]?.val||1, v => v>10?'#f05060':v>7?'#f0a500':'#22c55e');
+  makeBarChart('ventoBar', cityVento, cityVento[0]?.val||1, v => v>18?'#f05060':v>13?'#f0a500':'#1a6cf0');
+
+  destroyChart('bubbleChart');
+  charts['bubbleChart'] = new Chart(document.getElementById('bubbleChart'), {
+    type:'bubble',
+    data:{ datasets: cityList.map((c,i) => ({ label:c, data:[{x:avg(byCity[c].map(r=>r.media)), y:avg(byCity[c].map(r=>r.amp)), r:Math.max(4,byCity[c].reduce((s,r)=>s+r.precip,0)/30)}], backgroundColor:colors[i%colors.length]+'aa', borderColor:colors[i%colors.length], borderWidth:1 })) },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.x.toFixed(1)}°C med, ${ctx.parsed.y.toFixed(1)}° amp`}}}, scales:{ x:{title:{display:true,text:'Temp. média (°C)',color:'#3a6a9f',font:{size:9}},ticks:{color:'#3a6a9f',font:{size:9}},grid:{color:'#1e3a5f'}}, y:{title:{display:true,text:'Amplitude (°C)',color:'#3a6a9f',font:{size:9}},ticks:{color:'#3a6a9f',font:{size:9}},grid:{color:'#1e3a5f'}} }, layout:{padding:10} }
+  });
+
+  document.getElementById('pKpi1').textContent = data.reduce((s,r)=>s+r.precip,0).toFixed(0)+'mm';
+  document.getElementById('pKpi1s').textContent = cityList.length + ' cidade(s)';
+  document.getElementById('pKpi2').textContent = data.filter(r=>r.classif==='Chuvoso').length;
+  document.getElementById('pKpi2s').textContent = (data.filter(r=>r.classif==='Chuvoso').length/total*100).toFixed(0)+'% dos registros';
+  document.getElementById('pKpi3').textContent = (data.reduce((s,r)=>s+r.precip,0)/total).toFixed(1)+'mm';
+  document.getElementById('pKpi3s').textContent = 'Por registro';
+
+  makeBarChart('precipFullBar', cityPrecip, cityPrecip[0]?.val||1, v => v>200?'#1a6cf0':v>80?'#00c4e0':'#22c55e');
+
+  const top5Rainy = cityPrecip.slice(0,5).map(d=>d.city);
+  document.getElementById('precipLineLegend').innerHTML = top5Rainy.map((c,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${colors[i]}"></span>${c}</span>`).join('');
+  destroyChart('precipLineChart');
+  charts['precipLineChart'] = new Chart(document.getElementById('precipLineChart'), {
+    type:'line',
+    data:{ labels:allDates, datasets:top5Rainy.map((c,i) => ({ label:c, data:(byCity[c]||[]).map(r=>r.precip), borderColor:colors[i], backgroundColor:'transparent', borderWidth:2, pointRadius:2, tension:0.3 })) },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#3a6a9f',font:{size:9}},grid:{color:'#1e3a5f'}}, y:{ticks:{color:'#3a6a9f',font:{size:9},callback:v=>v+'mm'},grid:{color:'#1e3a5f'}} } }
+  });
+
+  const hottest = cityAvgTemp[0], mostRainy = cityPrecip[0], coldest = cityAvgTemp[cityAvgTemp.length-1];
+  const highAmp = cityAmp[0];
+  document.getElementById('insightsBox').innerHTML = `
+    <div class="insight alert"><div class="insight-title">Cidade mais quente: ${hottest?.city}</div><div class="insight-body">Temperatura média de ${hottest?.val.toFixed(1)}°C — acima da média geral de ${avg(allMedias).toFixed(1)}°C.</div></div>
+    <div class="insight info"><div class="insight-title">Maior precipitação: ${mostRainy?.city}</div><div class="insight-body">Acumulado de ${mostRainy?.val.toFixed(0)}mm — monitorar risco de alagamentos.</div></div>
+    <div class="insight good"><div class="insight-title">Clima mais ameno: ${coldest?.city}</div><div class="insight-body">Temperatura média de ${coldest?.val.toFixed(1)}°C — condições ideais para atividades ao ar livre.</div></div>
+    <div class="insight warn"><div class="insight-title">Maior amplitude térmica: ${highAmp?.city}</div><div class="insight-body">Variação média de ${highAmp?.val.toFixed(1)}°C por dia — atenção a variações bruscas.</div></div>
+  `;
+}
+
+updateDash();
+</script>
